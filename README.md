@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MedNexa
+
+> AI-powered prescription digitization and patient history platform for small clinics and private doctors.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| UI Components | Radix UI Primitives |
+| Forms | React Hook Form + Zod |
+| Notifications | Sonner |
+| Icons | Lucide React |
+| Database | Neon PostgreSQL |
+| ORM | Drizzle ORM |
+| OCR | Tesseract.js |
+| AI | Google Gemini Flash |
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone & Install
+
+```bash
+npm install
+```
+
+### 2. Configure Environment
+
+Copy `.env.example` to `.env.local` and fill in your credentials:
+
+```bash
+cp .env.example .env.local
+```
+
+Required environment variables:
+- `DATABASE_URL` — Neon PostgreSQL connection string
+- `GEMINI_API_KEY` — Google Gemini API key
+
+### 3. Set up the Database
+
+```bash
+npm run db:push     # Push schema to Neon DB (dev)
+npm run db:studio   # Open Drizzle Studio
+```
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/
+│   ├── (dashboard)/         # Dashboard layout group
+│   │   ├── dashboard/       # Main dashboard page
+│   │   ├── patients/        # Patient management
+│   │   │   └── [id]/        # Patient detail
+│   │   └── prescriptions/   # Prescription management
+│   │       ├── upload/      # Upload & OCR flow
+│   │       └── [id]/        # Prescription detail
+│   ├── api/
+│   │   └── ocr/             # OCR processing API route
+│   ├── layout.tsx
+│   └── page.tsx             # Redirects to /dashboard
+├── components/
+│   ├── dashboard/           # Stats cards, quick actions, recent list
+│   ├── layout/              # Sidebar, header
+│   ├── patients/            # Patient table, detail, add form
+│   ├── prescriptions/       # Upload form, detail, medicine badges, table
+│   └── shared/              # Status badge, search input
+├── lib/
+│   ├── db/                  # Drizzle ORM + Neon config + schema
+│   ├── ocr/                 # Tesseract.js wrapper
+│   ├── ai/                  # Google Gemini integration
+│   └── utils/               # cn(), formatDate(), etc.
+├── actions/                 # Next.js Server Actions
+│   ├── patients.ts
+│   └── prescriptions.ts
+└── types/                   # Shared TypeScript types
+```
 
-## Learn More
+## Key Features
 
-To learn more about Next.js, take a look at the following resources:
+- 📸 **Drag & drop** prescription image upload
+- 🔍 **Tesseract OCR** — extracts raw text from handwritten prescriptions
+- 🤖 **Gemini AI** — corrects OCR errors & extracts structured data (doctor, medicines, dosages, diagnosis)
+- ✅ **Doctor review workflow** — review, edit, approve or reject digitized prescriptions
+- 👥 **Patient management** — register patients, link prescriptions to records
+- 📊 **Dashboard** — at-a-glance stats and quick actions
+- 🏷️ **Tags & summaries** — AI-generated tags and plain-English summaries
+- 📈 **OCR confidence indicator** — shows reliability of extraction
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## OCR Pipeline
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+Image Upload
+    ↓
+Image Quality Check (Gemini Vision)
+    ↓
+Tesseract OCR → Raw Text
+    ↓
+Gemini Flash → Corrected Text + Structured Data
+    ↓
+Doctor Review & Approval
+    ↓
+Saved to Neon PostgreSQL
+```
