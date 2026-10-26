@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 
 export const runtime = "nodejs";
 
@@ -28,7 +27,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid file type. Only JPEG, PNG, WebP, and AVIF are supported.",
+          error:
+            "Invalid file type. Only JPEG, PNG, WebP, and AVIF are supported.",
         },
         { status: 400 }
       );
@@ -43,30 +43,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Sanitize extension and filename
-    const originalExt = path.extname(file.name) || ".jpg";
-    const baseName = path
-      .basename(file.name, originalExt)
-      .replace(/[^a-zA-Z0-9_-]/g, "_")
-      .slice(0, 40);
-    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const fileName = `${baseName}-${uniqueSuffix}${originalExt}`;
-
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadsDir, { recursive: true });
-
-    const filePath = path.join(uploadsDir, fileName);
-    await writeFile(filePath, buffer);
-
-    const publicUrl = `/uploads/${fileName}`;
+    // Upload to Vercel Blob Storage
+    const blob = await put(`prescriptions/${Date.now()}-${file.name}`, file, {
+      access: "public",
+    });
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      fileName,
+      url: blob.url,
+      fileName: file.name,
     });
   } catch (error: any) {
     console.error("Upload error:", error);
