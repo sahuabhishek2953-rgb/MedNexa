@@ -48,6 +48,7 @@ export function PrescriptionDetail({ prescription: initial }: PrescriptionDetail
   });
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -301,22 +302,35 @@ export function PrescriptionDetail({ prescription: initial }: PrescriptionDetail
                 <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                   Original Prescription
                 </span>
-                <a
-                  href={prescription.imageUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Full View ↗
-                </a>
+                {!imageError && !prescription.imageUrl.startsWith("blob:") && (
+                  <a
+                    href={prescription.imageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Full View ↗
+                  </a>
+                )}
               </div>
-              <div className="p-2 bg-gray-50 flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={prescription.imageUrl}
-                  alt="Prescription"
-                  className="w-full object-contain max-h-96 rounded-lg"
-                />
+              <div className="p-2 bg-gray-50 flex items-center justify-center min-h-[160px]">
+                {imageError || prescription.imageUrl.startsWith("blob:") ? (
+                  <div className="py-8 px-4 text-center flex flex-col items-center justify-center text-gray-500">
+                    <AlertTriangle className="h-8 w-8 text-amber-500 mb-2" />
+                    <p className="text-sm font-semibold text-gray-700">Image not available</p>
+                    <p className="text-xs text-gray-400 mt-1 max-w-xs">
+                      The temporary browser session for this image has expired. Please re-upload to store it permanently on disk.
+                    </p>
+                  </div>
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={prescription.imageUrl}
+                    alt="Prescription"
+                    onError={() => setImageError(true)}
+                    className="w-full object-contain max-h-96 rounded-lg"
+                  />
+                )}
               </div>
             </div>
           )}

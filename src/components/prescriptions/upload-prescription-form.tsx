@@ -55,15 +55,31 @@ export function UploadPrescriptionForm({ patients = [] }: UploadPrescriptionForm
     if (!file || !preview) return;
 
     try {
-      // Step 1: Prepare image base64
+      // Step 1: Upload image file permanently to server storage
       setProcessing({
         step: "uploading",
         progress: 15,
-        message: "Reading and preprocessing image...",
+        message: "Storing prescription image securely...",
       });
+
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to upload image file");
+      }
+
+      const uploadData = await uploadRes.json();
+      const persistentImageUrl: string = uploadData.url;
+
       const base64 = await fileToBase64(file);
 
-      // Step 2: Create initial record
+      // Step 2: Create initial record with persistent image URL
       setProcessing({
         step: "uploading",
         progress: 30,
@@ -71,8 +87,8 @@ export function UploadPrescriptionForm({ patients = [] }: UploadPrescriptionForm
       });
       const createResult = await createPrescription({
         patientId: patientId || undefined,
-        imageUrl: preview,
-        imageKey: file.name,
+        imageUrl: persistentImageUrl,
+        imageKey: uploadData.fileName || file.name,
       });
 
       if (!createResult.success || !createResult.data) {
