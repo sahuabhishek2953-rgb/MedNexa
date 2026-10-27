@@ -1,5 +1,4 @@
 import { createWorker } from "tesseract.js";
-import path from "path";
 
 export interface OcrResult {
   text: string;
@@ -11,52 +10,30 @@ export interface OcrResult {
 }
 
 /**
- * Runs Tesseract OCR on a base64 image string with explicit Node worker path.
- * This prevents Next.js/Turbopack bundling resolution errors on Windows.
+ * Runs Tesseract OCR safely on a base64 image string.
+ * Gracefully returns empty text if Tesseract worker cannot be initialized.
  */
 export async function runOcr(imageBase64: string): Promise<OcrResult> {
-  const workerPath = path.join(
-    process.cwd(),
-    "node_modules",
-    "tesseract.js",
-    "src",
-    "worker-script",
-    "node",
-    "index.js"
-  );
-
-  let worker;
+  let worker: any = null;
   try {
+    const cleanBase64 = imageBase64.includes(",")
+      ? imageBase64.split(",")[1]
+      : imageBase64;
+
     worker = await createWorker("eng", 1, {
-      workerPath,
       logger: () => {},
     });
 
-    const buffer = Buffer.from(imageBase64, "base64");
+    const buffer = Buffer.from(cleanBase64, "base64");
     const { data } = await worker.recognize(buffer);
 
-    // Extract word details
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allWords: Array<{ text: string; confidence: number }> = (data as any)
-      .blocks
-      ?.flatMap((b: any) =>
-        b.paragraphs?.flatMap((par: any) =>
-          par.lines?.flatMap((line: any) =>
-            (line.words ?? []).map((w: any) => ({
-              text: w.text as string,
-              confidence: Math.round(w.confidence as number),
-            }))
-          )
-        )
-      ) ?? [];
-
     return {
-      text: data.text?.trim() || "",
-      confidence: Math.round(data.confidence) || 0,
-      words: allWords,
+      text: data?.text?.trim() || "",
+      confidence: Math.round(data?.confidence || 0),
+      words: [],
     };
   } catch (error) {
-    console.error("Tesseract OCR execution error:", error);
+    console.warn("Tesseract OCR fallback warning (non-fatal):", error);
     return {
       text: "",
       confidence: 0,
@@ -64,7 +41,11 @@ export async function runOcr(imageBase64: string): Promise<OcrResult> {
     };
   } finally {
     if (worker) {
-      await worker.terminate().catch(() => {});
+      try {
+        await worker.terminate();
+      } catch {
+        // ignore terminate errors
+      }
     }
   }
 }

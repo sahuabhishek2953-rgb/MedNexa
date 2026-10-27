@@ -101,24 +101,24 @@ export function UploadPrescriptionForm({ patients = [] }: UploadPrescriptionForm
       setProcessing({
         step: "ocr",
         progress: 55,
-        message: "Extracting raw text with Tesseract OCR...",
-      });
-
-      setProcessing({
-        step: "ai",
-        progress: 75,
-        message: "Gemini Flash refining OCR, medicines & clinical tags...",
+        message: "Digitizing prescription with Gemini Vision & OCR...",
       });
 
       const response = await fetch("/api/ocr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, analyzeQuality: true }),
+        body: JSON.stringify({
+          imageBase64: base64,
+          imageUrl: persistentImageUrl,
+          analyzeQuality: true,
+        }),
       });
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || "OCR & AI pipeline failed");
+        throw new Error(
+          errJson.error || errJson.details || "OCR & AI pipeline failed"
+        );
       }
 
       const result = await response.json();
